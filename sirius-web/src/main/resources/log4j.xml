@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+	<!-- 输出日志到控制台 ConsoleAppender -->
+	<appender name="console" class="org.apache.log4j.ConsoleAppender">
+		<param name="Threshold" value="info"></param>
+		<layout class="org.apache.log4j.TTCCLayout">
+			<param name="ConversionPattern" value="TTCCLayout"></param>
+		</layout>
+	</appender>
+
+	<appender name="dailyRollingFile" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="Threshold" value="info"></param>
+		<param name="ImmediateFlush" value="true"></param>
+		<param name="File" value="/tomcat8/logs/open-api-core.log"></param>
+		<param name="DatePattern" value="'.'yyyy-MM-dd'.log'"></param>
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss\} %-5p] %c.%M(%F:%L)-%m%n"></param>
+		</layout>
+	</appender>
+	
+	<appender name="allLogAppender" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="Threshold" value="info"></param>
+		<param name="ImmediateFlush" value="true"></param>
+		<param name="File" value="/tomcat8/logs/open-api-all.log"></param>
+		<param name="DatePattern" value="'.'yyyy-MM-dd'.log'"></param>
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss\} %-5p] %c.%M(%F:%L)-%m%n"></param>
+		</layout>
+	</appender>
+
+	<category name="com.wlqq.payment.openapi.core" additivity="true">
+		<priority value="debug" />
+		<appender-ref ref="dailyRollingFile" />
+	</category>
+
+	<!-- 定义全局的日志输出级别,但是在输出目的地的配置中配置的具体输出级别优先级高于全局定义的优先级。 如果在railyFile中定义<param 
+		name="Threshold" value="info"></param>，那么将会把info以上级别的信息输出 -->
+	<root>
+		<priority value="info" />
+		<appender-ref ref="allLogAppender" />
+	</root>
+
+</log4j:configuration> 
