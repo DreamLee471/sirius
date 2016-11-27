@@ -6,15 +6,17 @@ import org.sirius.common.Utils;
 
 public class Config {
 	
-	private String namespace;
+	private final String namespace;
 	
-	private String name;
+	private final  String name;
 	
-	private String content;
+	private final  String content;
 	
 	private boolean dirty;
 	
 	private String md5;
+	
+	private boolean forceTransaction;
 
 	public Config(String namespace, String name, String content) {
 		this.namespace = namespace;
@@ -31,6 +33,14 @@ public class Config {
 	}
 	
 	
+	public boolean isForceTransaction() {
+		return forceTransaction;
+	}
+
+	public void setForceTransaction(boolean forceTransaction) {
+		this.forceTransaction = forceTransaction;
+	}
+
 	public void makeMd5(){
         try {
 			this.md5 = Utils.md5(content);
@@ -39,6 +49,9 @@ public class Config {
 	}
 
 	public String getMd5() {
+		if(md5 == null){
+			makeMd5();
+		}
 		return md5;
 	}
 
@@ -53,5 +66,5 @@ public class Config {
 	public String getContent() {
 		return content;
 	}
-
+	
 }
