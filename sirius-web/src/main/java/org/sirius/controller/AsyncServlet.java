@@ -8,9 +8,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sirius.core.pull.PullCore;
-import org.sirius.core.pull.PullKey;
-import org.sirius.core.pull.PullKeyType;
-import org.sirius.core.store.impl.StandardTransientStore;
 import org.sirius.domain.Config;
 
 public class AsyncServlet extends HttpServlet {
@@ -19,7 +16,6 @@ public class AsyncServlet extends HttpServlet {
 	 * 
 	 */
 	private static final long serialVersionUID = -9068855300425242188L;
-	private static StandardTransientStore store = new StandardTransientStore(null);
 	
 	
 	@Override
@@ -34,13 +30,19 @@ public class AsyncServlet extends HttpServlet {
 		
 		String type = req.getParameter("type");
 		if("query".equals(type)){
-			PullCore.addLongPull(new PullKey(namespace+"_"+name, PullKeyType.NAMESPACE_NAME), req);
+			PullCore.addLongPull(req, resp);
 		}else if("store".equals(type)){
 			String content = req.getParameter("content");
 			Config config = new Config(namespace, name, content);
-			store.store(config);
+			PullCore.store(config);
 		}
 		
+	}
+	
+	
+	@Override
+	public void destroy() {
+		PullCore.destory();
 	}
 
 }
