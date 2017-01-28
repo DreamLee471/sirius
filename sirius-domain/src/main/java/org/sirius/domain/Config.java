@@ -6,17 +6,21 @@ import org.sirius.common.Utils;
 
 public class Config {
 	
-	private final String namespace;
+	private String namespace;
 	
-	private final  String name;
+	private  String name;
 	
-	private final  String content;
+	private  String content;
 	
 	private boolean dirty;
 	
 	private String md5;
 	
 	private boolean forceTransaction;
+	
+	public Config() {
+		super();
+	}
 
 	public Config(String namespace, String name, String content) {
 		this.namespace = namespace;
@@ -66,5 +70,19 @@ public class Config {
 	public String getContent() {
 		return content;
 	}
+
+	public void setNamespace(String namespace) {
+		this.namespace = namespace;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public void setContent(String content) {
+		this.content = content;
+	}
+	
+	
 	
 }

@@ -35,6 +35,8 @@ public class AsyncServlet extends HttpServlet {
 			String content = req.getParameter("content");
 			Config config = new Config(namespace, name, content);
 			PullCore.store(config);
+		}else if("alive".equals(type)){
+			resp.getWriter().write("ok");
 		}
 		
 	}

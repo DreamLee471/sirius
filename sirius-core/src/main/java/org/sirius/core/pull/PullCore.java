@@ -1,7 +1,11 @@
 package org.sirius.core.pull;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -12,6 +16,7 @@ import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sirius.core.eventbus.ConfigEvent;
 import org.sirius.core.eventbus.EventBus;
 import org.sirius.core.eventbus.EventHandler;
@@ -19,7 +24,6 @@ import org.sirius.core.eventbus.filters.TrueFilter;
 import org.sirius.core.store.impl.StandardTransientStore;
 import org.sirius.domain.Config;
 
-import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson.JSON;
 
 /**
@@ -29,7 +33,7 @@ import com.alibaba.fastjson.JSON;
  */
 public class PullCore {
 	
-	private static final Map<PullKey,ConfigPullTask> LONGPULLS = new ConcurrentHashMap<>(1024);
+	private static final Map<PullKey,List<ConfigPullTask>> LONGPULLS = new ConcurrentHashMap<>(1024);
 	
 	private static ScheduledExecutorService scheduleService;
 	
@@ -86,14 +90,16 @@ public class PullCore {
 		@Override
 		public void handler(ConfigEvent<Config> e) {
 			Config config = e.getSource();
-			ConfigPullTask task = filterContext(config);
-			if(task == null) return;
+			List<ConfigPullTask> tasks = filterContext(config);
+			if(tasks == null) return;
 			switch(e.getEventType()){
 				case ADD:
 				case MODIFIED:
 					MD5_STORE_MAP.put(config.getMd5(), config);
 					try {
-						task.send(config);
+						for(ConfigPullTask task : tasks){
+							task.send(config);
+						}
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
@@ -101,7 +107,9 @@ public class PullCore {
 				case REMOVE:
 					MD5_STORE_MAP.remove(config.getMd5());
 					try {
-						task.send(config);
+						for(ConfigPullTask task : tasks){
+							task.send(config);
+						}
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
@@ -109,12 +117,12 @@ public class PullCore {
 			}
 		}
 		
-		private ConfigPullTask filterContext(Config config){
-			ConfigPullTask task = LONGPULLS.remove(new PullKey(config.getMd5(), PullKeyType.MD5));
-			if(task == null){
-				task = LONGPULLS.remove(new PullKey(config.getNamespace()+"_"+config.getName(), PullKeyType.NAMESPACE_NAME));
+		private List<ConfigPullTask> filterContext(Config config){
+			List<ConfigPullTask> tasks = LONGPULLS.remove(new PullKey(config.getMd5(), PullKeyType.MD5));
+			if(tasks == null){
+				tasks = LONGPULLS.remove(new PullKey(config.getNamespace()+"_"+config.getName(), PullKeyType.NAMESPACE_NAME));
 			}
-			return task;
+			return tasks;
 		}
 		
 	}
@@ -129,6 +137,8 @@ public class PullCore {
 		
 		private long timeout;
 		
+		private String uuid;
+		
 		private Future<Void> timeoutTask;
 		
 		public ConfigPullTask(AsyncContext asyncContext,PullKey key, long timeout) {
@@ -136,6 +146,7 @@ public class PullCore {
 			this.asyncContext = asyncContext;
 			this.key = key;
 			this.timeout = timeout;
+			this.uuid = UUID.randomUUID().toString();//每个任务生成唯一的uuid
 		}
 		
 		
@@ -155,15 +166,22 @@ public class PullCore {
 				
 				@Override
 				public void run() {
-					LONGPULLS.remove(key);
+					List<ConfigPullTask> tasks = LONGPULLS.get(key);
+					if(tasks != null){
+						
+						for(Iterator<ConfigPullTask> iter = tasks.iterator();iter.hasNext();) {
+							if(iter.next().uuid == uuid){
+								iter.remove();
+							}
+						}
+					}
 					asyncContext.complete();
 				}
 			}, timeout, TimeUnit.SECONDS);
-			ConfigPullTask oldTask = LONGPULLS.put(key, this);
-			//防止将后加入的任务取消，先将之前的超时任务取消掉
-			if(oldTask != null){
-				oldTask.timeoutTask.cancel(true);
+			if(!LONGPULLS.containsKey(key)){
+				LONGPULLS.put(key, new ArrayList<>());
 			}
+			LONGPULLS.get(key).add(this);
 		}
 		
 	}
